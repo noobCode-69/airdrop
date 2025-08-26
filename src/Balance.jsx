@@ -31,10 +31,6 @@ function ShowSolBalance() {
     };
 
     fetchBalance();
-
-    // Refresh balance automatically every 20s while wallet is connected
-    const interval = setInterval(fetchBalance, 20000);
-    return () => clearInterval(interval);
   }, [wallet.publicKey, connection]);
 
   if (!wallet.connected) {
