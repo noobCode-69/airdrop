@@ -14,16 +14,40 @@ export default function Send() {
   const { connection } = useConnection();
 
   const handleSend = async () => {
-    const transaction = new Transaction();
-    transaction.add(
-      SystemProgram.transfer({
-        fromPubkey: wallet.publicKey,
-        toPubkey: new PublicKey(to),
-        lamports: amount * LAMPORTS_PER_SOL,
-      })
-    );
+    try {
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: wallet.publicKey,
+          toPubkey: new PublicKey(to),
+          lamports: amount * LAMPORTS_PER_SOL,
+        })
+      );
 
-    await wallet.sendTransaction(transaction, connection);
+      const signature = await wallet.sendTransaction(transaction, connection);
+
+      let status = null;
+      let retries = 30;
+      while (retries > 0) {
+        const { value } = await connection.getSignatureStatuses([signature]);
+        status = value[0];
+
+        if (status && status.confirmationStatus === "finalized") {
+          alert(`✅ Transaction successful! Signature: ${signature}`);
+          return;
+        }
+
+        if (status && status.err) {
+          throw new Error("Transaction failed: " + JSON.stringify(status.err));
+        }
+
+        retries--;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      throw new Error("Transaction not confirmed in time");
+    } catch (err) {
+      alert("❌ " + err.message);
+    }
   };
 
   return (
